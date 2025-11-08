@@ -11,12 +11,14 @@ class ClaudeClient:
     """Wrapper for Anthropic's Claude API with streaming and non-streaming support."""
 
     def __init__(self):
-        self.api_key = os.getenv("ANTHROPIC_API_KEY", "")
+        self.api_key = settings.ANTHROPIC_API_KEY or ""
         if not self.api_key:
             raise ValueError("ANTHROPIC_API_KEY environment variable is not set")
 
         self.client = anthropic.Anthropic(api_key=self.api_key)
-        self.default_model = "claude-3-5-sonnet-20241022"  # Latest Sonnet model
+        # Using Claude 3 Sonnet - stable, widely available model
+        # This is the standard Sonnet model that should work with all API keys
+        self.default_model = "claude-3-sonnet-20240229"
         self.max_tokens = 8000
 
     async def generate_response(

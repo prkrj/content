@@ -64,6 +64,9 @@ class Settings(BaseSettings):
     PROFESSOR_API_URL: Optional[str] = None
     PROFESSOR_API_KEY: Optional[str] = None
 
+    # Claude AI API Integration
+    ANTHROPIC_API_KEY: Optional[str] = None
+
     # Git Integration
     GIT_ENABLED: bool = True
     GIT_AUTO_COMMIT: bool = False
