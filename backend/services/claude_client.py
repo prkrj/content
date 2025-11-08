@@ -15,7 +15,7 @@ class ClaudeClient:
         if not self.api_key:
             raise ValueError("ANTHROPIC_API_KEY environment variable is not set")
 
-        self.client = anthropic.Anthropic(api_key=self.api_key)
+        self.client = anthropic.AsyncAnthropic(api_key=self.api_key)
         # Using Claude 3 Sonnet - stable, widely available model
         # This is the standard Sonnet model that should work with all API keys
         self.default_model = "claude-3-sonnet-20240229"
@@ -55,7 +55,7 @@ class ClaudeClient:
             if system_prompt:
                 kwargs["system"] = system_prompt
 
-            response = self.client.messages.create(**kwargs)
+            response = await self.client.messages.create(**kwargs)
 
             # Extract text from response
             return response.content[0].text
@@ -97,8 +97,8 @@ class ClaudeClient:
             if system_prompt:
                 kwargs["system"] = system_prompt
 
-            with self.client.messages.stream(**kwargs) as stream:
-                for text in stream.text_stream:
+            async with self.client.messages.stream(**kwargs) as stream:
+                async for text in stream.text_stream:
                     yield text
 
         except Exception as e:

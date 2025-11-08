@@ -270,13 +270,80 @@ The following files are automatically protected from being committed to Git:
 
 ---
 
+## AI Features (Agents, Skills, Workflows)
+
+### What's Available
+
+**22 Autonomous Agents** - AI-powered content development assistants:
+- Curriculum Architect (10x productivity)
+- Content Developer (5-7x productivity)
+- Assessment Designer
+- Pedagogical Reviewer
+- Quality Assurance
+- And 17 more specialized agents
+
+**92 Composable Skills** - Granular AI functions for specific tasks
+**Multi-Agent Workflows** - Chain agents together for complex tasks
+
+### How to Use
+
+#### 1. Agents Tab
+1. Navigate to **Agents** in the top navigation
+2. Browse available agents by category
+3. Select an agent (e.g., "Content Developer")
+4. Enter your task description
+5. Configure parameters (grade level, subject, state, standards)
+6. Click "Start Agent"
+7. Monitor progress in real-time
+8. View and use generated content
+
+**Example**: "Create a 5th grade Texas Math lesson on fractions aligned to TEKS"
+
+#### 2. Skills Tab
+1. Navigate to **Skills** in the top navigation
+2. Browse the 92 available skills
+3. Click "Invoke" on any skill
+4. Enter task description and optional context
+5. Click "Execute Skill"
+6. View results immediately
+
+**Example Skills**:
+- curriculum.research - Research subject matter and standards
+- curriculum.design - Write learning objectives
+- assessment.design-items - Create test questions
+
+#### 3. Workflows Tab
+1. Navigate to **Workflows** in the top navigation
+2. Browse pre-built workflow templates
+3. Create custom workflows
+4. Execute multi-step content development pipelines
+
+### Requirements
+
+**For AI features to work**, you need:
+- ✅ Anthropic API key configured in `backend/.env`
+- ✅ Your API key is already set: `ANTHROPIC_API_KEY=sk-ant-api03...`
+- ✅ All fixes applied and servers running
+
+### AI Features Performance
+
+- **Agent execution**: Typically 30 seconds - 3 minutes depending on complexity
+- **Skills execution**: Typically 5-30 seconds
+- **Timeout**: 5 minutes maximum (automatically enforced)
+- **Cost**: ~$0.01-0.50 per agent invocation (varies by task complexity)
+
+---
+
 ## Next Steps
 
 1. **Access the application**: Open [http://localhost:3000](http://localhost:3000)
 2. **Log in** with: `admin@hmhco.com` / `changeme`
 3. **Explore the features**:
    - Browse the 303-file knowledge base
-   - Create content
+   - **Try the Agents tab** - Invoke an AI agent to create content
+   - **Try the Skills tab** - Execute individual AI skills
+   - **Try the Workflows tab** - Run multi-step content pipelines
+   - Create content manually
    - Manage curriculum configurations
    - Use the search functionality
 

@@ -59,3 +59,6 @@ slowapi==0.1.9
 # Background tasks
 celery==5.3.4
 redis==5.0.1
+
+# AI Integration
+anthropic==0.72.0

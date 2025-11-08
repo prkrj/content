@@ -171,7 +171,13 @@ class AgentExecutor:
 
     def __init__(self):
         self.claude_client = get_claude_client()
-        self.knowledge_base_path = Path("/Users/colossus/development/content/content")
+        # Use knowledge base path from settings
+        from core.config import settings
+        kb_path = settings.KNOWLEDGE_BASE_PATH
+        # Handle relative paths from backend directory
+        if not Path(kb_path).is_absolute():
+            kb_path = Path(__file__).parent.parent / kb_path
+        self.knowledge_base_path = Path(kb_path).resolve()
 
     async def execute_agent(
         self,

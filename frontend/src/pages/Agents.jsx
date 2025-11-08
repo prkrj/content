@@ -10,7 +10,7 @@
  *
  * Note: For orchestrating multiple agents in sequence, see the Workflows page.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -152,6 +152,10 @@ export default function Agents() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
+  // Track job start time for timeout handling
+  const jobStartTimeRef = useRef(null);
+  const MAX_JOB_DURATION_MS = 5 * 60 * 1000; // 5 minutes timeout
+
   // State
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -183,8 +187,18 @@ export default function Agents() {
     refetchInterval: (data) => {
       // Poll every 2 seconds while running, stop when complete/failed
       if (data?.status === 'running' || data?.status === 'queued') {
+        // Check for timeout (5 minutes max)
+        const now = Date.now();
+        if (jobStartTimeRef.current && (now - jobStartTimeRef.current) > MAX_JOB_DURATION_MS) {
+          showError('Job timeout: Agent execution took too long (5 min limit)');
+          setActiveJobId(null);
+          jobStartTimeRef.current = null;
+          return false;
+        }
         return 2000;
       }
+      // Stop polling when job is complete/failed
+      jobStartTimeRef.current = null;
       return false;
     },
   });
@@ -204,6 +218,7 @@ export default function Agents() {
     ),
     onSuccess: (data) => {
       setActiveJobId(data.id);
+      jobStartTimeRef.current = Date.now(); // Track start time for timeout
       queryClient.invalidateQueries(['agent-jobs']);
       setShowResults(false);
       showSuccess(`${selectedAgent.name} started successfully`);

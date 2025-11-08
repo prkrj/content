@@ -12,12 +12,17 @@ import {
   ClockIcon,
   ChevronRightIcon,
   CodeBracketIcon,
+  XMarkIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 import Layout from '../components/Layout';
 import useAuthStore from '../store/authStore';
 import EmptyState from '../components/EmptyState';
 import { SkeletonCard } from '../components/LoadingSkeleton';
 import { showSuccess, showError, showInfo, showWarning } from '../utils/toast';
+import { skillsAPI } from '../services/api';
 
 export default function Skills() {
   const navigate = useNavigate();
@@ -102,10 +107,40 @@ export default function Skills() {
     setShowDetailModal(true);
   };
 
+  const [showInvokeModal, setShowInvokeModal] = useState(false);
+  const [skillToInvoke, setSkillToInvoke] = useState(null);
+  const [skillParameters, setSkillParameters] = useState({});
+  const [skillResult, setSkillResult] = useState(null);
+  const [isInvoking, setIsInvoking] = useState(false);
+
   const handleInvokeSkill = (skill) => {
-    // TODO: Implement skill invocation modal
-    showInfo(`Skill invocation for "${skill.name}" coming soon!`);
-    console.log('Invoke skill:', skill.id);
+    setSkillToInvoke(skill);
+    setSkillParameters({});
+    setSkillResult(null);
+    setShowInvokeModal(true);
+  };
+
+  const handleExecuteSkill = async () => {
+    if (!skillToInvoke) return;
+
+    setIsInvoking(true);
+    try {
+      const response = await skillsAPI.invoke(skillToInvoke.id, skillParameters);
+      setSkillResult(response);
+      showSuccess(`Skill "${skillToInvoke.name}" executed successfully`);
+    } catch (error) {
+      showError('Failed to execute skill', error);
+      setSkillResult({ status: 'error', result: error.message || 'Unknown error' });
+    } finally {
+      setIsInvoking(false);
+    }
+  };
+
+  const handleCloseInvokeModal = () => {
+    setShowInvokeModal(false);
+    setSkillToInvoke(null);
+    setSkillParameters({});
+    setSkillResult(null);
   };
 
   // Group skills by category
@@ -496,6 +531,133 @@ export default function Skills() {
                     Close
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Skill Invocation Modal */}
+        {showInvokeModal && skillToInvoke && (
+          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    Invoke Skill: {skillToInvoke.name}
+                  </h3>
+                  <button
+                    onClick={handleCloseInvokeModal}
+                    className="text-gray-400 hover:text-gray-500"
+                  >
+                    <XMarkIcon className="h-6 w-6" />
+                  </button>
+                </div>
+
+                <p className="text-sm text-gray-600 mb-6">{skillToInvoke.description}</p>
+
+                {!skillResult ? (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 mb-3">Parameters</h4>
+                    <div className="space-y-4">
+                      {/* Simple parameter inputs */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Task Description
+                        </label>
+                        <textarea
+                          value={skillParameters.task || ''}
+                          onChange={(e) => setSkillParameters({ ...skillParameters, task: e.target.value })}
+                          rows={3}
+                          className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                          placeholder="Describe what you want this skill to do..."
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Context (optional)
+                        </label>
+                        <textarea
+                          value={skillParameters.context || ''}
+                          onChange={(e) => setSkillParameters({ ...skillParameters, context: e.target.value })}
+                          rows={2}
+                          className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                          placeholder="Any additional context or constraints..."
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-6 flex justify-end space-x-3">
+                      <button
+                        onClick={handleCloseInvokeModal}
+                        className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleExecuteSkill}
+                        disabled={isInvoking || !skillParameters.task}
+                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isInvoking ? (
+                          <>
+                            <ArrowPathIcon className="animate-spin h-4 w-4 mr-2" />
+                            Executing...
+                          </>
+                        ) : (
+                          <>
+                            <PlayIcon className="h-4 w-4 mr-2" />
+                            Execute Skill
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 mb-3">Result</h4>
+                    <div className={`rounded-lg p-4 ${skillResult.status === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                      <div className="flex items-start">
+                        {skillResult.status === 'success' ? (
+                          <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                        ) : (
+                          <XCircleIcon className="h-5 w-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
+                        )}
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900 mb-2">
+                            {skillResult.status === 'success' ? 'Success' : 'Error'}
+                          </p>
+                          <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                            {skillResult.result}
+                          </div>
+                          {skillResult.execution_time && (
+                            <p className="text-xs text-gray-500 mt-2">
+                              Executed in {skillResult.execution_time.toFixed(2)}s
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 flex justify-end space-x-3">
+                      <button
+                        onClick={() => {
+                          setSkillResult(null);
+                          setSkillParameters({});
+                        }}
+                        className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                      >
+                        Run Again
+                      </button>
+                      <button
+                        onClick={handleCloseInvokeModal}
+                        className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

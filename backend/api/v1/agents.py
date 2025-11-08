@@ -454,8 +454,9 @@ async def invoke_agent(
     db.commit()
     db.refresh(db_job)
 
-    # Start agent execution in background
-    background_tasks.add_task(execute_agent_job, db_job.id)
+    # Start agent execution in background using sync wrapper
+    # This ensures the async agent execution runs properly
+    background_tasks.add_task(run_agent_job_sync, db_job.id)
 
     return db_job
 
@@ -571,6 +572,32 @@ async def cancel_job(
 
 
 # Background task execution
+def run_agent_job_sync(job_id: int):
+    """
+    Synchronous wrapper to run async agent job in background.
+    This ensures the async function runs properly in FastAPI's background tasks.
+    """
+    import asyncio
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info(f"[Job {job_id}] Background task started (sync wrapper)")
+
+    try:
+        # Create new event loop for this thread
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        # Run the async function
+        loop.run_until_complete(execute_agent_job(job_id))
+
+        # Close the loop
+        loop.close()
+        logger.info(f"[Job {job_id}] Background task completed successfully")
+    except Exception as e:
+        logger.error(f"[Job {job_id}] Background task failed: {str(e)}", exc_info=True)
+
+
 async def execute_agent_job(job_id: int):
     """
     Execute agent job in background using real Claude API.
@@ -582,13 +609,19 @@ async def execute_agent_job(job_id: int):
     4. Handles errors and timeouts
     """
     from database.session import SessionLocal
-    from services.agent_executor import get_agent_executor
+    import logging
 
+    logger = logging.getLogger(__name__)
     db = SessionLocal()
+    job = None
 
     try:
+        # Import executor inside try block to catch import errors
+        from services.agent_executor import get_agent_executor
+
         job = db.query(AgentJob).filter(AgentJob.id == job_id).first()
         if not job:
+            logger.error(f"Job {job_id} not found")
             return
 
         # Update status to running
@@ -597,25 +630,32 @@ async def execute_agent_job(job_id: int):
         job.progress_percentage = 10
         job.progress_message = "Initializing agent..."
         db.commit()
+        logger.info(f"[Job {job_id}] Starting execution - Agent: {job.agent_type}")
+        logger.info(f"[Job {job_id}] Task: {job.task_description[:100]}...")
 
         # Get agent executor
         agent_executor = get_agent_executor()
+        logger.info(f"[Job {job_id}] Agent executor initialized")
 
         job.progress_percentage = 30
         job.progress_message = "Connecting to Claude AI..."
         db.commit()
+        logger.info(f"[Job {job_id}] Connecting to Claude API (model: claude-3-sonnet-20240229)")
 
         # Execute agent with real Claude API
+        logger.info(f"[Job {job_id}] Sending request to Claude API...")
         result = await agent_executor.execute_agent(
             agent_type=job.agent_type,
             task=job.task_description,
             parameters=job.parameters,
             use_knowledge_base=True,
         )
+        logger.info(f"[Job {job_id}] Received response from Claude API")
 
         job.progress_percentage = 80
         job.progress_message = "Processing results..."
         db.commit()
+        logger.info(f"[Job {job_id}] Processing and storing results...")
 
         # Check if execution was successful
         if result["metadata"]["success"]:
@@ -625,19 +665,27 @@ async def execute_agent_job(job_id: int):
             job.progress_message = "Complete"
             job.output_content = result["output"]
             job.output_metadata = result["metadata"]
+            output_length = len(result["output"]) if result["output"] else 0
+            logger.info(f"[Job {job_id}] ✓ SUCCESS - Generated {output_length} characters of content")
         else:
             # Execution failed
             job.status = AgentJobStatus.FAILED
             job.completed_at = datetime.utcnow()
-            job.error_message = result["metadata"].get("error", "Unknown error")
+            error_msg = result["metadata"].get("error", "Unknown error")
+            job.error_message = error_msg
+            logger.error(f"[Job {job_id}] ✗ FAILED - {error_msg}")
 
         db.commit()
+        logger.info(f"[Job {job_id}] Job status saved to database")
 
     except Exception as e:
+        logger.error(f"Error executing agent job {job_id}: {str(e)}", exc_info=True)
         if job:
             job.status = AgentJobStatus.FAILED
             job.completed_at = datetime.utcnow()
-            job.error_message = str(e)
+            job.error_message = f"{type(e).__name__}: {str(e)}"
+            job.progress_percentage = 0
+            job.progress_message = "Execution failed"
             db.commit()
     finally:
         db.close()

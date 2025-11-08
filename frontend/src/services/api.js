@@ -301,4 +301,88 @@ export const agentsAPI = {
   },
 };
 
+// Skills API
+export const skillsAPI = {
+  // List all available skills
+  list: async () => {
+    const response = await apiClient.get('/skills/');
+    return response.data;
+  },
+
+  // Get skills by category
+  getByCategory: async (category) => {
+    const response = await apiClient.get(`/skills/category/${category}`);
+    return response.data;
+  },
+
+  // Get skill details
+  get: async (skillId) => {
+    const response = await apiClient.get(`/skills/${skillId}`);
+    return response.data;
+  },
+
+  // Invoke a skill
+  invoke: async (skillId, parameters = {}) => {
+    const response = await apiClient.post('/skills/invoke', {
+      skill_id: skillId,
+      parameters,
+    });
+    return response.data;
+  },
+};
+
+// Workflows API
+export const workflowsAPI = {
+  // List all workflows
+  list: async () => {
+    const response = await apiClient.get('/workflows/');
+    return response.data;
+  },
+
+  // Get workflow details
+  get: async (workflowId) => {
+    const response = await apiClient.get(`/workflows/${workflowId}`);
+    return response.data;
+  },
+
+  // Create workflow
+  create: async (workflowData) => {
+    const response = await apiClient.post('/workflows/', workflowData);
+    return response.data;
+  },
+
+  // Update workflow
+  update: async (workflowId, workflowData) => {
+    const response = await apiClient.put(`/workflows/${workflowId}`, workflowData);
+    return response.data;
+  },
+
+  // Delete workflow
+  delete: async (workflowId) => {
+    await apiClient.delete(`/workflows/${workflowId}`);
+  },
+
+  // Execute workflow
+  execute: async (workflowId, parameters = {}) => {
+    const response = await apiClient.post(`/workflows/${workflowId}/execute`, {
+      parameters,
+    });
+    return response.data;
+  },
+
+  // Get execution status
+  getExecution: async (executionId) => {
+    const response = await apiClient.get(`/workflows/executions/${executionId}`);
+    return response.data;
+  },
+
+  // List executions
+  listExecutions: async (workflowId = null, limit = 20) => {
+    const response = await apiClient.get('/workflows/executions', {
+      params: { workflow_id: workflowId, limit },
+    });
+    return response.data;
+  },
+};
+
 export default apiClient;

@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m venv:*)",
+      "Bash(./venv/Scripts/pip install:*)",
+      "Bash(./venv/Scripts/python.exe:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)",
+      "Bash(if [ -f content.db ])",
+      "Bash(then rm content.db)",
+      "Bash(else echo \"No database found\")",
+      "Bash(fi)",
+      "Bash(python:*)",
+      "Bash(cat:*)",
+      "Bash(taskkill:*)",
+      "Bash(curl:*)",
+      "Bash(nul)",
+      "Bash(if [ -f nul ])",
+      "Bash(then echo \"File exists, attempting to remove...\")",
+      "Bash(rm:*)",
+      "Bash(else echo \"File does not exist\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

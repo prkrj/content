@@ -494,14 +494,43 @@ async def invoke_skill(
             detail=f"Skill '{invocation.skill_id}' not found"
         )
 
-    # TODO: Integrate with actual Professor Framework skill execution
-    # For now, return simulated response
-    return SkillResult(
-        skill_id=invocation.skill_id,
-        status="success",
-        result=f"Simulated result from {skill.name} skill with parameters: {invocation.parameters}",
-        execution_time=1.5,
-    )
+    # Execute skill with real Claude API
+    from services.agent_executor import get_agent_executor
+    import time
+
+    start_time = time.time()
+
+    try:
+        agent_executor = get_agent_executor()
+        result = await agent_executor.execute_skill(
+            skill_id=invocation.skill_id,
+            parameters=invocation.parameters,
+        )
+
+        execution_time = time.time() - start_time
+
+        if result["metadata"]["success"]:
+            return SkillResult(
+                skill_id=invocation.skill_id,
+                status="success",
+                result=result["output"],
+                execution_time=execution_time,
+            )
+        else:
+            return SkillResult(
+                skill_id=invocation.skill_id,
+                status="error",
+                result=result["metadata"].get("error", "Skill execution failed"),
+                execution_time=execution_time,
+            )
+    except Exception as e:
+        execution_time = time.time() - start_time
+        return SkillResult(
+            skill_id=invocation.skill_id,
+            status="error",
+            result=f"Error executing skill: {str(e)}",
+            execution_time=execution_time,
+        )
 
 
 @router.post("/compose", response_model=Dict[str, Any])
@@ -535,13 +564,43 @@ async def compose_skills(
         if previous_output:
             params["previous_output"] = previous_output
 
-        # TODO: Execute actual skill
-        result = SkillResult(
-            skill_id=invocation.skill_id,
-            status="success",
-            result=f"Result from {skill.name}",
-            execution_time=1.0,
-        )
+        # Execute actual skill with Claude API
+        from services.agent_executor import get_agent_executor
+        import time
+
+        start_time = time.time()
+
+        try:
+            agent_executor = get_agent_executor()
+            exec_result = await agent_executor.execute_skill(
+                skill_id=invocation.skill_id,
+                parameters=params,
+            )
+
+            execution_time = time.time() - start_time
+
+            if exec_result["metadata"]["success"]:
+                result = SkillResult(
+                    skill_id=invocation.skill_id,
+                    status="success",
+                    result=exec_result["output"],
+                    execution_time=execution_time,
+                )
+            else:
+                result = SkillResult(
+                    skill_id=invocation.skill_id,
+                    status="error",
+                    result=exec_result["metadata"].get("error", "Skill execution failed"),
+                    execution_time=execution_time,
+                )
+        except Exception as e:
+            execution_time = time.time() - start_time
+            result = SkillResult(
+                skill_id=invocation.skill_id,
+                status="error",
+                result=f"Error: {str(e)}",
+                execution_time=execution_time,
+            )
 
         results.append(result.dict())
         previous_output = result.result
